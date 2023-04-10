@@ -427,7 +427,7 @@ object Constraint {
       assertion: Double => Boolean,
       where: Option[String] = None,
       hint: Option[String] = None,
-      convertNull: Boolean = false)
+      convertNull: Option[ConvertNulls] = None)
     : Constraint = {
 
     val maxLength = MaxLength(column, where, convertNull)
@@ -456,7 +456,7 @@ object Constraint {
       assertion: Double => Boolean,
       where: Option[String] = None,
       hint: Option[String] = None,
-      convertNull: Boolean = false)
+      convertNull: Option[ConvertNulls] = None)
     : Constraint = {
 
     val minLength = MinLength(column, where, convertNull)

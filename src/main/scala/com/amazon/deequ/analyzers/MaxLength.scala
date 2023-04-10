@@ -26,7 +26,7 @@ import org.apache.spark.sql.functions.max
 import org.apache.spark.sql.types.DoubleType
 import org.apache.spark.sql.types.StructType
 
-case class MaxLength(column: String, where: Option[String] = None, convertNull: Boolean = false)
+case class MaxLength(column: String, where: Option[String] = None, convertNullOption: Option[ConvertNulls] = None)
   extends StandardScanShareableAnalyzer[MaxState]("MaxLength", column)
   with FilterableAnalyzer {
 
@@ -35,6 +35,9 @@ case class MaxLength(column: String, where: Option[String] = None, convertNull: 
   }
 
   override def fromAggregationResult(result: Row, offset: Int): Option[MaxState] = {
+    val convertNull: Boolean = convertNullOption
+      .map { convertNull => convertNull.isConvertNull() }
+      .getOrElse(false)
     ifNoNullsIn(result, offset) { _ =>
       MaxState(result.getDouble(offset), Some(criterion(convertNull)))
     }
