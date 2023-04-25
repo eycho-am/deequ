@@ -103,8 +103,32 @@ class AnalysisRunnerTests extends AnyWordSpec
 
           assert(numSeparateJobs == analyzers.length * 2)
           assert(numCombinedJobs == 2)
-          assert(separateResults == runnerResults)
+          assert(separateResults.toString == runnerResults.toString)
        }
+
+    "Simplified above test to demonstrate comparing col with count() failing" in
+      withMonitorableSparkSession { (sparkSession, sparkMonitor) =>
+
+        val df = getDfWithNumericValues(sparkSession)
+
+        val analyzers = Seq(Uniqueness("att1"))
+
+        val (separateResults, numSeparateJobs) = sparkMonitor.withMonitoringSession { stat =>
+          val results = analyzers.map {
+            _.calculate(df)
+          }.toSet
+          (results, stat.jobCount)
+        }
+
+        val (runnerResults, numCombinedJobs) = sparkMonitor.withMonitoringSession { stat =>
+          val results = AnalysisRunner.onData(df).addAnalyzers(analyzers).run().allMetrics.toSet
+          (results, stat.jobCount)
+        }
+
+        assert(numSeparateJobs == analyzers.length * 2)
+        assert(numCombinedJobs == 2)
+        assert(separateResults.toString == runnerResults.toString)
+      }
 
     "join column grouping analyzers also for multi column analyzers" in
       withMonitorableSparkSession { (sparkSession, sparkMonitor) =>
@@ -125,7 +149,7 @@ class AnalysisRunnerTests extends AnyWordSpec
 
         assert(numSeparateJobs == analyzers.length * 2)
         assert(numCombinedJobs == 2)
-        assert(separateResults == runnerResults)
+        assert(separateResults.toString == runnerResults.toString)
       }
 
     "join column grouping analyzers for column analyzers with the same filter condition" in
@@ -148,7 +172,7 @@ class AnalysisRunnerTests extends AnyWordSpec
 
         assert(numSeparateJobs == analyzers.length * 2)
         assert(numCombinedJobs == 2)
-        assert(separateResults == runnerResults)
+        assert(separateResults.toString == runnerResults.toString)
       }
 
     "join column grouping analyzers for multi column analyzers with the same filter condition" in
@@ -171,7 +195,7 @@ class AnalysisRunnerTests extends AnyWordSpec
 
         assert(numSeparateJobs == analyzers.length * 2)
         assert(numCombinedJobs == 2)
-        assert(separateResults == runnerResults)
+        assert(separateResults.toString == runnerResults.toString)
       }
 
     "does not join column grouping analyzers for column analyzers with different " +
@@ -179,9 +203,9 @@ class AnalysisRunnerTests extends AnyWordSpec
 
         val df = getDfWithNumericValues(sparkSession)
 
-        val analyzers = Uniqueness("att1", Some("att3 > 0")) ::
-          Uniqueness("att1", Some("att3 = 0")) ::
-          UniqueValueRatio(Seq("att1")) :: Nil
+        val analyzers = UniqueValueRatio(Seq("att1")) ::
+          Uniqueness("att1", Some("att3 > 0")) ::
+          Uniqueness("att1", Some("att3 = 0")) :: Nil
 
         val (separateResults, numSeparateJobs) = sparkMonitor.withMonitoringSession { stat =>
           val results = analyzers.map { _.calculate(df) }.toSet
@@ -195,7 +219,7 @@ class AnalysisRunnerTests extends AnyWordSpec
 
         assert(numSeparateJobs == analyzers.length * 2)
         assert(numCombinedJobs == analyzers.length * 2)
-        assert(separateResults == runnerResults)
+        assert(separateResults.toString == runnerResults.toString)
       }
 
     "reuse existing results" in
@@ -213,7 +237,7 @@ class AnalysisRunnerTests extends AnyWordSpec
         val resultKey = ResultKey(0, Map.empty)
         repository.save(resultKey, analysisResult)
 
-        val analyzers = analyzerToTestReusingResults :: Uniqueness(Seq("item", "att2")) :: Nil
+        val analyzers = analyzerToTestReusingResults :: Uniqueness(Seq("att2", "item")) :: Nil
 
         val (separateResults, numSeparateJobs) = sparkMonitor.withMonitoringSession { stat =>
           val results = analyzers.map { _.calculate(df) }.toSet
@@ -230,7 +254,7 @@ class AnalysisRunnerTests extends AnyWordSpec
 
         assert(numSeparateJobs == analyzers.length * 2)
         assert(numCombinedJobs == 2)
-        assert(separateResults == runnerResults)
+        assert(separateResults.toString == runnerResults.toString)
       }
 
     "fail if specified when the calculation of new metrics would be needed when " +
