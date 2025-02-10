@@ -402,6 +402,8 @@ class VerificationSuiteTest extends WordSpec with Matchers with SparkContextSpec
       val maxRowLevel = resultData.select(expectedColumn5).collect().map(r => r.getAs[Any](0))
       assert(Seq(true, true, true, true, true, true).sameElements(maxRowLevel))
 
+
+
       // filtered rows 4, 5, 6 (where item < 4)
       val rowLevel6 = resultData.select(expectedColumn6).collect().map(r => r.getAs[Any](0))
       assert(Seq(true, false, false, true, true, true).sameElements(rowLevel6))
